@@ -1,0 +1,220 @@
+{
+  "name": "n8n_google_ads",
+  "nodes": [
+    {
+      "parameters": {
+        "managerCustomerId": "3594546650",
+        "clientCustomerId": "8695013668",
+        "additionalOptions": {},
+        "requestOptions": {}
+      },
+      "id": "cb7b7655-d47d-41fc-8de9-addce1b3f67e",
+      "name": "Google Ads (Campanhas)",
+      "type": "n8n-nodes-base.googleAds",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "JSip84lzWVWACW8P",
+          "name": "Google Ads account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "managerCustomerId": "3594646650",
+        "clientCustomerId": "8695013668",
+        "additionalOptions": {},
+        "requestOptions": {}
+      },
+      "id": "cc4b69f9-7c68-4838-a510-d030bfa541a6",
+      "name": "Google Ads (Termos)",
+      "type": "n8n-nodes-base.googleAds",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "JSip84lzWVWACW8P",
+          "name": "Google Ads account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet reportString = \"\";\n\nitems.forEach(item => {\n  const term = item.json.search_term_view?.search_term || \"N/A\";\n  const ctr = item.json.metrics?.ctr ? (item.json.metrics.ctr * 100).toFixed(2) : 0;\n  const imps = item.json.metrics?.impressions || 0;\n  \n  reportString += `- Termo: \"${term}\" | Impressões: ${imps} | CTR: ${ctr}%\\n`;\n});\n\nreturn { search_terms_formatted: reportString || \"Nenhum termo relevante encontrado.\" };"
+      },
+      "id": "59783a90-1b63-41a2-acfc-ecc810d77c44",
+      "name": "Format Search Terms",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "id": "b1b5cf8b-8c53-419e-98bb-749986106e46",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "7fc57ce4-27b8-4470-909f-cd1e6ff6fee9",
+      "name": "OpenAI (ChatGPT)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        672,
+        112
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "4Yc7CkwoFlTfSQcQ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "seu-email@dominio.com",
+        "subject": "=Relatório de Otimização Google Ads: {{ $node[\"Merge Data\"].json.campaign.name }}",
+        "message": "={{ $json.choices[0].message.content }}",
+        "options": {}
+      },
+      "id": "20027e33-f778-4a38-ba29-4a248e78afd2",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        880,
+        112
+      ],
+      "webhookId": "8dacf0d7-617a-4989-b500-a0052495c5dc"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks"
+            }
+          ]
+        }
+      },
+      "id": "141b0ac1-7c7a-4688-bcad-cbb39dd7c913",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        112
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Ads (Campanhas)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Ads (Termos)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Ads (Campanhas)": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Ads (Termos)": {
+      "main": [
+        [
+          {
+            "node": "Format Search Terms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Search Terms": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "OpenAI (ChatGPT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI (ChatGPT)": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a3842003-8318-495d-ac7b-a568e58d669b",
+  "meta": {
+    "instanceId": "e03c070b5f6a0ff1ad478b8c4afe4a94b5a0ed3241f36dd95847d1f07f7010ea"
+  },
+  "id": "nibuQfslP3run0B6xsySu",
+  "tags": []
+}
